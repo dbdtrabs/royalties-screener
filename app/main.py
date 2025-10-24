@@ -24,21 +24,46 @@ UNIVERSE = {
     "RGLD": "GC=F",
     "SAND": "GC=F"
 }
-
+def get_close_series(tk: str, period="1y"):
+    df = yf.download(tk, period=period, auto_adjust=True, progress=False)
+    if df is None or len(df) == 0:
+        return None
+    # Extraire une Series Close propre (même si yfinance renvoie parfois un DF)
+    s = df["Close"] if "Close" in df.columns else df.squeeze()
+    if isinstance(s, pd.DataFrame):
+        # Certaines bourses renvoient 'Close' multi-colonnes -> on prend la 1ère
+        s = s.iloc[:, 0]
+    s = pd.Series(s).dropna()
+    s.name = tk
+    return s
 def compute_metrics(ticker, proxy):
     try:
-        px_t = yf.download(ticker, period="1y", auto_adjust=True, progress=False)["Close"]
-        px_p = yf.download(proxy, period="1y", auto_adjust=True, progress=False)["Close"]
-        if len(px_t) < 60 or len(px_p) < 60:
+        px_t = get_close_series(ticker, period="1y")
+        px_p = get_close_series(proxy,  period="1y")
+        if px_t is None or px_p is None:
+            print(f"[{ticker}] pas de données téléchargées.")
             return None
-        corr = px_t.pct_change().corr(px_p.pct_change())
-        beta = np.cov(px_t.pct_change().dropna(), px_p.pct_change().dropna())[0,1] / np.var(px_p.pct_change().dropna())
+
+        # Aligner proprement
+        rets_t = px_t.pct_change()
+        rets_p = px_p.pct_change()
+        aligned = pd.concat([rets_t, rets_p], axis=1, keys=["t","p"]).dropna()
+        if len(aligned) < 60:
+            return None
+
+        corr = aligned["t"].corr(aligned["p"])
+        beta = np.cov(aligned["t"], aligned["p"])[0, 1] / np.var(aligned["p"])
         z = (px_t.iloc[-1] - px_t.mean()) / px_t.std(ddof=0)
-        return {"corr": float(corr), "beta": float(beta), "z": float(z), "price": float(px_t.iloc[-1])}
+
+        return {
+            "corr": float(corr),
+            "beta": float(beta),
+            "z": float(z),
+            "price": float(px_t.iloc[-1])
+        }
     except Exception as e:
         print(f"[{ticker}] erreur: {e}")
         return None
-
 def make_pdf(results):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H-%M")
     pdf_path = os.path.join(OUTPUT_DIR, f"royalty_report_{now}.pdf")
