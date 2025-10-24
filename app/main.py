@@ -1,3 +1,4 @@
+print("### VERSION_XYZ ###")
 import os, ssl, datetime
 import pandas as pd
 import numpy as np
