@@ -1,0 +1,86 @@
+
+# Configuration for Royalties & Commodities Correlation Screener
+
+history_years: 12          # how much history to fetch
+lookback_corr_days: 90     # rolling correlation window
+lookback_beta_days: 180    # regression window
+dislocation_z_threshold: 2.0
+corr_break_delta: 0.4      # current corr below baseline by at least this amount
+make_charts: false         # set true to add PNG charts later
+
+# Commodity proxies (Yahoo Finance symbols)
+commodities:
+  - key: WTI
+    name: WTI Crude Oil
+    ticker: "CL=F"
+  - key: GAS
+    name: Henry Hub Natural Gas
+    ticker: "NG=F"
+  - key: GOLD
+    name: Gold
+    ticker: "GC=F"
+  - key: SILVER
+    name: Silver
+    ticker: "SI=F"
+  - key: COPPER
+    name: Copper
+    ticker: "HG=F"
+  - key: NICKEL
+    name: Nickel (LN1 proxy via LME index ETF/ETN if available)
+    ticker: "JJN"       # proxy ETN; adjust to your broker's available symbol
+  - key: LITHIUM
+    name: Lithium (proxy ETF)
+    ticker: "LIT"
+  - key: URANIUM
+    name: Uranium (proxy ETF)
+    ticker: "URA"
+
+# Companies to track
+companies:
+  # OIL & GAS ROYALTIES / MLP-LIKE
+  - ticker: "DMLP"
+    name: Dorchester Minerals, L.P.
+    linked_commodities: ["WTI", "GAS"]
+  - ticker: "BSM"
+    name: Black Stone Minerals
+    linked_commodities: ["WTI", "GAS"]
+  - ticker: "KRP"
+    name: Kimbell Royalty Partners
+    linked_commodities: ["WTI", "GAS"]
+  - ticker: "VNOM"
+    name: Viper Energy Partners
+    linked_commodities: ["WTI"]
+  - ticker: "TPL"
+    name: Texas Pacific Land Corp.
+    linked_commodities: ["WTI"]
+
+  # PRECIOUS METALS ROYALTIES
+  - ticker: "FNV"
+    name: Franco-Nevada
+    linked_commodities: ["GOLD"]
+  - ticker: "WPM"
+    name: Wheaton Precious Metals
+    linked_commodities: ["GOLD", "SILVER"]
+  - ticker: "RGLD"
+    name: Royal Gold
+    linked_commodities: ["GOLD", "SILVER", "COPPER"]
+  - ticker: "OR"
+    name: Osisko Gold Royalties
+    linked_commodities: ["GOLD"]
+  - ticker: "SAND"
+    name: Sandstorm Gold
+    linked_commodities: ["GOLD", "SILVER", "COPPER"]
+
+  # BASE METALS / TRANSITION
+  - ticker: "ALS.TO"
+    name: Altius Minerals (Toronto)
+    linked_commodities: ["COPPER", "NICKEL"]
+  - ticker: "VOXR"
+    name: Vox Royalty
+    linked_commodities: ["GOLD", "COPPER", "NICKEL"]
+  - ticker: "LIRC.TO"
+    name: Lithium Royalty Corp. (Toronto)
+    linked_commodities: ["LITHIUM"]
+  - ticker: "URC.TO"
+    name: Uranium Royalty Corp. (Toronto)
+    linked_commodities: ["URANIUM"]
