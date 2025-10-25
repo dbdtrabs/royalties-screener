@@ -132,3 +132,52 @@ if __name__ == "__main__":
         send_email(pdf)
     else:
         print("Aucune donnée téléchargée ou erreur réseau.")
+import os, base64, json, requests
+
+def send_email_via_brevo_api(pdf_path: str):
+    api_key = os.getenv("BREVO_API_KEY", "").strip()
+    to_email = os.getenv("TO_EMAIL", "").strip()
+    from_email = os.getenv("SMTP_USER", "").strip() or to_email
+    if not api_key or not to_email:
+        print("⚠️ API Brevo : clé ou destinataire manquants")
+        return
+
+    with open(pdf_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+
+    payload = {
+        "sender": {"email": from_email, "name": "Royalty Screener"},
+        "to": [{"email": to_email}],
+        "subject": "Rapport quotidien Royalty Screener",
+        "htmlContent": "<p>Voici le rapport PDF en pièce jointe.</p>",
+        "attachment": [{
+            "content": encoded,
+            "name": os.path.basename(pdf_path)
+        }]
+    }
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
+    }
+
+    try:
+        r = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers=headers,
+            data=json.dumps(payload),
+            timeout=45
+        )
+        if r.status_code in (200, 201, 202):
+            print("📨 Email envoyé via API Brevo.")
+        else:
+            print(f"❌ Erreur API Brevo : {r.status_code} → {r.text}")
+    except Exception as e:
+        print(f"❌ Envoi échoué via API Brevo : {e}")
+api_key = os.getenv("BREVO_API_KEY", "").strip()
+if api_key:
+    send_email_via_brevo_api(pdf)
+else:
+    send_email(pdf)  # ancienne méthode SMTP
+
+
