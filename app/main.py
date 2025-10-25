@@ -76,28 +76,47 @@ def make_pdf(results):
             y = 27*cm
     c.save()
     return pdf_path
+def send_email(pdf_path: str):
+    host = os.getenv("SMTP_HOST", "").strip()             # ex: smtp-relay.brevo.com
+    port = int(os.getenv("SMTP_PORT", "587"))             # 587 = TLS (STARTTLS), 465 = SSL
+    user = os.getenv("SMTP_USER", "").strip()
+    pwd  = os.getenv("SMTP_PASSWORD", "").strip()
+    to   = os.getenv("TO_EMAIL", "").strip()
+    from_addr = user or to
 
-def send_email(pdf_path):
-    host = os.getenv("SMTP_HOST")
-    port = int(os.getenv("SMTP_PORT", "465"))
-    user = os.getenv("SMTP_USER")
-    pwd  = os.getenv("SMTP_PASSWORD")
-    to   = os.getenv("TO_EMAIL")
-    if not all([host, user, pwd, to]):
-        print("⚠️ Email non envoyé (variables manquantes)")
+    if not all([host, port, user, pwd, to]):
+        print("⚠️ Email non envoyé (variables SMTP manquantes)")
         return
+
     msg = EmailMessage()
-    msg["Subject"] = "Daily Royalty Screener"
-    msg["From"] = user
+    msg["Subject"] = "Daily Royalty Screener Report"
+    msg["From"] = from_addr
     msg["To"] = to
-    msg.set_content("Voici ton rapport quotidien.")
+    msg.set_content("Rapport quotidien en pièce jointe.")
     with open(pdf_path, "rb") as f:
-        msg.add_attachment(f.read(), maintype="application", subtype="pdf", filename=os.path.basename(pdf_path))
+        msg.add_attachment(f.read(), maintype="application", subtype="pdf",
+                           filename=os.path.basename(pdf_path))
+
+    import smtplib, ssl, time
     ctx = ssl.create_default_context()
-    with smtplib.SMTP_SSL(host, port, context=ctx) as s:
-        s.login(user, pwd)
-        s.send_message(msg)
-    print("📨 Email envoyé.")
+
+    try:
+        if port == 465:
+            # SSL direct
+            with smtplib.SMTP_SSL(host, port, context=ctx, timeout=20) as s:
+                s.login(user, pwd)
+                s.send_message(msg)
+        else:
+            # 587 (TLS/STARTTLS) ou 2525
+            with smtplib.SMTP(host, port, timeout=20) as s:
+                s.ehlo()
+                s.starttls(context=ctx)
+                s.ehlo()
+                s.login(user, pwd)
+                s.send_message(msg)
+        print(f"📨 Email envoyé à {to}.")
+    except Exception as e:
+        print(f"❌ Envoi email échoué ({host}:{port}) : {e}")
 
 if __name__ == "__main__":
     print("🚀 Lancement screener…")
